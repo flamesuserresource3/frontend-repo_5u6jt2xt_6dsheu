@@ -1,44 +1,48 @@
-import { useMemo } from 'react';
+import { Rocket, Filter, SortAsc, SortDesc } from 'lucide-react';
 
-export default function Header({ range, setRange, sort, setSort }) {
-  const ranges = useMemo(() => [
-    { key: 'all', label: 'All time' },
-    { key: 'month', label: 'This month' },
-    { key: 'week', label: 'This week' },
-  ], []);
-
-  const sorts = useMemo(() => [
-    { key: 'votes', label: 'Highest votes' },
-    { key: 'comments', label: 'Highest comments' },
-  ], []);
-
+export default function Header({ filters, onChange }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Ideas to build for VibeCoders</h1>
-        <p className="text-sm text-gray-500">Post / upvote ideas you would like to exist in real</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex rounded-lg bg-gray-100 p-1">
-          {ranges.map(r => (
-            <button
-              key={r.key}
-              onClick={() => setRange(r.key)}
-              className={`px-3 py-1.5 text-sm rounded-md transition ${range === r.key ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
-            >{r.label}</button>
-          ))}
+    <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+          <Rocket size={20} />
         </div>
-        <div className="flex items-center gap-2 ml-2">
-          <label className="text-sm text-gray-500">Sort by</label>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">VibeCoders Hunt</h1>
+          <p className="text-sm text-slate-500">Share ideas. Upvote your favorites. Join the conversation.</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <Filter size={16} className="text-slate-500" />
           <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="text-sm rounded-md border-gray-200 bg-white px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            value={filters.range}
+            onChange={(e) => onChange({ ...filters, range: e.target.value })}
+            className="bg-transparent text-sm outline-none"
           >
-            {sorts.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+            <option value="all">All time</option>
+            <option value="month">This month</option>
+            <option value="week">This week</option>
+          </select>
+        </div>
+
+        <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          {filters.sort === 'votes' ? (
+            <SortAsc size={16} className="text-slate-500" />
+          ) : (
+            <SortDesc size={16} className="text-slate-500" />
+          )}
+          <select
+            value={filters.sort}
+            onChange={(e) => onChange({ ...filters, sort: e.target.value })}
+            className="bg-transparent text-sm outline-none"
+          >
+            <option value="votes">Top by votes</option>
+            <option value="comments">Top by comments</option>
           </select>
         </div>
       </div>
-    </div>
+    </header>
   );
 }

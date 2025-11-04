@@ -1,59 +1,74 @@
 import { useState } from 'react';
+import { Rocket } from 'lucide-react';
 
-const BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
 export default function IdeaForm({ onCreated }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
-    setLoading(true);
+    setError('');
+    if (!title.trim()) {
+      setError('Please enter a title.');
+      return;
+    }
     try {
-      const res = await fetch(`${BASE}/ideas`, {
+      setLoading(true);
+      const res = await fetch(`${BASE_URL}/ideas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description: description || undefined })
+        body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined }),
       });
-      const data = await res.json();
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || 'Failed to create idea');
+      }
       setTitle('');
       setDescription('');
-      onCreated?.(data);
-    } catch (e) {
-      console.error(e);
-      alert('Failed to post idea');
+      onCreated?.();
+    } catch (err) {
+      setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={submit} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="font-medium">Post a new idea</h2>
-        <span className="text-xs text-gray-400">Be concise and friendly</span>
+    <div className="sticky top-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Rocket size={18} className="text-indigo-600" />
+          <h2 className="font-medium">Share a new idea</h2>
+        </div>
+        <form onSubmit={submit} className="space-y-3">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Idea title"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Brief description (optional)"
+            rows={4}
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {loading ? 'Posting…' : 'Post idea'}
+          </button>
+        </form>
       </div>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Your brilliant idea in a sentence"
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      />
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Add a few details (optional)"
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      />
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex items-center rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700 disabled:opacity-60"
-        >{loading ? 'Posting...' : 'Post idea'}</button>
-      </div>
-    </form>
+    </div>
   );
 }

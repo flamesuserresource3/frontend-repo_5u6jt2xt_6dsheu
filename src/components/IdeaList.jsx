@@ -1,44 +1,71 @@
-import { useEffect, useState, useCallback } from 'react';
-import IdeaCard from './IdeaCard';
+import { useEffect, useState } from 'react';
+import IdeaCard from './IdeaCard.jsx';
 
-const BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
-export default function IdeaList({ range, sort }) {
-  const [ideas, setIdeas] = useState(null);
+export default function IdeaList({ range = 'all', sort = 'votes' }) {
+  const [ideas, setIdeas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
+  const fetchIdeas = async () => {
     try {
-      const res = await fetch(`${BASE}/ideas?range=${range}&sort=${sort}`);
+      setLoading(true);
+      setError('');
+      const params = new URLSearchParams({ range, sort });
+      const res = await fetch(`${BASE_URL}/ideas?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to load ideas');
       const data = await res.json();
-      setIdeas(data);
-    } catch (e) {
-      console.error(e);
+      setIdeas(data || []);
+    } catch (err) {
+      setError(err.message || 'Error loading ideas');
+    } finally {
+      setLoading(false);
     }
-  }, [range, sort]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleUpvoted = (updated) => {
-    setIdeas(prev => prev.map(i => i.id === updated.id ? updated : i));
   };
 
-  if (!ideas) return (
-    <div className="grid gap-3 sm:gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-24 bg-white border border-gray-200 rounded-xl animate-pulse" />
+  useEffect(() => {
+    fetchIdeas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, sort]);
+
+  if (loading) {
+    return (
+      <div className="grid gap-3">
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
+    );
+  }
+
+  if (!ideas.length) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-500">No ideas yet. Be the first to post!</div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      {ideas.map((idea) => (
+        <IdeaCard key={idea.id} idea={idea} onChanged={fetchIdeas} />
       ))}
     </div>
   );
+}
 
-  if (ideas.length === 0) return (
-    <div className="text-center text-gray-500 py-10">No ideas yet. Be the first to post!</div>
-  );
-
+function Skeleton() {
   return (
-    <div className="grid gap-3 sm:gap-4">
-      {ideas.map(idea => (
-        <IdeaCard key={idea.id} idea={idea} onUpvoted={handleUpvoted} />
-      ))}
+    <div className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="h-4 w-2/3 rounded bg-slate-200" />
+      <div className="mt-3 h-3 w-full rounded bg-slate-100" />
+      <div className="mt-2 h-3 w-5/6 rounded bg-slate-100" />
     </div>
   );
 }
